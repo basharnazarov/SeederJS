@@ -11,8 +11,6 @@ import { Box, Button, MenuItem, TextField, Typography } from "@mui/material";
 import Slider from "@mui/material/Slider";
 import axios from "axios";
 
-// api :  https://randomuser.me/documentation#howto
-
 const url = "https://randomuser.me/api/";
 
 function App() {
@@ -22,17 +20,37 @@ function App() {
         seed: "",
     });
     const [data, setData] = React.useState([]);
-    const [scroll, setScroll] = React.useState(false)
-    const ref = React.useRef()
-    
+    const [scroll, setScroll] = React.useState(false);
 
-    const handleScroll = (e) => {
-        const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
-    console.log('scroll',scroll)
-     setScroll(bottom)
-      }
+    const scrollContainer = React.useRef();
 
-   
+    React.useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            const entry = entries[0];
+            setScroll(entry.isIntersecting);
+        });
+        observer.observe(scrollContainer.current);
+    }, []);
+
+    const getExtraData = async () => {
+        const extra = await axios
+            .get(`${url}?results=10&nat=${params.region}&seed=${params.seed}`)
+            .then((response) => {
+                if (response.data.message) {
+                    console.log(response.data.message);
+                } else {
+                    return response.data.results;
+                }
+            });
+
+        setData([...data, ...extra]);
+    };
+
+    React.useEffect(() => {
+        if (data.length > 0 && scroll) {
+            getExtraData();
+        }
+    }, [scroll]);
 
     const generateData = async () => {
         const data = await axios
@@ -46,14 +64,11 @@ function App() {
             });
 
         setData(data);
+        setScroll(false);
     };
 
-  
-  
-
     return (
-        <Box >
-           
+        <Box>
             <Box
                 sx={{
                     display: "flex",
@@ -95,16 +110,28 @@ function App() {
                             Error Count:
                         </Typography>
                         <Slider
+                        sx={{ width: "350px" }}
                             label="Temperature"
-                            defaultValue={30}
-                            // getAriaValueText={3}
                             valueLabelDisplay="auto"
+                            value={params?.error}
                             step={1}
                             marks
                             min={0}
                             max={1000}
+                            onChangeCommitted={
+                                (e, newValue) => {
+                                    setParams({
+                                        ...params,
+                                        error: newValue,
+                                    });
+                                }
+                            }
                         />
                         <TextField
+                            value={params.error}
+                            onChange={(e) =>
+                                setParams({ ...params, error: e.target.value })
+                            }
                             sx={{ ml: "15px" }}
                             type="number"
                             InputProps={{
@@ -119,7 +146,9 @@ function App() {
                         value={params.seed}
                         label="Seed"
                         sx={{ width: "150px" }}
-                        onChange={(e=>setParams({...params,seed:e.target.value}))}
+                        onChange={(e) =>
+                            setParams({ ...params, seed: e.target.value })
+                        }
                     />
                     <Button variant="contained" onClick={() => generateData()}>
                         Random
@@ -127,13 +156,10 @@ function App() {
                 </Box>
             </Box>
             <TableContainer
-            // onScroll={handleScroll}
-           
                 component={Paper}
                 style={{ width: "70%", margin: "auto" }}
-              
             >
-                <Table aria-label="simple table"    >
+                <Table aria-label="simple table">
                     <TableHead sx={{ background: "#E8F8FD" }}>
                         <TableRow>
                             <TableCell>Index</TableCell>
@@ -158,7 +184,10 @@ function App() {
                                           {index + 1}
                                       </TableCell>
                                       <TableCell>
-                                      {row?.phone?.substring(row?.phone?.length-4, row?.phone?.length)}
+                                          {row?.phone?.substring(
+                                              row?.phone?.length - 4,
+                                              row?.phone?.length
+                                          )}
                                       </TableCell>
                                       <TableCell component="th" scope="row">
                                           {row?.name.first}
@@ -177,9 +206,11 @@ function App() {
                               ))
                             : ""}
                     </TableBody>
-                  
                 </Table>
             </TableContainer>
+            <div style={{ visibility: "hidden" }} ref={scrollContainer}>
+                scroll check
+            </div>
         </Box>
     );
 }
