@@ -23,56 +23,91 @@ function App() {
   const [scroll, setScroll] = React.useState(false);
 
   const scrollContainer = React.useRef();
+  const alphabet = "abcdefghijklmnopqrstuvwxyz";
+  const randomCharacter = alphabet[Math.floor(Math.random() * alphabet.length)];
 
-  React.useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0];
-      setScroll(entry.isIntersecting);
-    });
-    observer.observe(scrollContainer.current);
-  }, []);
+  const handleAdd = (str) => {
+    const newStr = str.replace(
+      str[Math.floor(Math.random() * str.length)],
+      `${str[Math.floor(Math.random() * str.length)]}` + `${randomCharacter}`
+    );
+    return newStr;
+  };
 
-  const getExtraData = async () => {
-    const extra = await axios
-      .get(`${url}?results=10&nat=${params.region}&seed=${params.seed}`)
-      .then((response) => {
-        if (response.data.message) {
-          console.log(response.data.message);
+  const handleDelete = (str) => {
+    const newStr = str.replace(str[Math.floor(Math.random() * str.length)], "");
+
+    return newStr;
+  };
+
+  const handleSwap = (str) => {
+    const randomNum = Math.floor(Math.random() * (str.length - 2));
+    const newStr = str.replace(
+      `${str[randomNum]}` + `${str[randomNum + 1]}`,
+      `${str[randomNum + 1]}` + `${str[randomNum]}`
+    );
+    return newStr;
+  };
+
+  const functions = [handleAdd, handleDelete, handleSwap];
+
+  const handleSeedError = (arr) => {
+   
+    if(Number(params.error) === 0) {
+      return arr;
+    }
+    let errorData = [];
+    if (Number(params.error) > 0) {
+      arr.map((record, index) => {
+        const finalFunc = (callback, str, errorType) => {
+          const errStr = callback(str);
+          if (errorType === 1) record.name.first = errStr;
+          if (errorType === 2) record.name.last = errStr;
+          if (errorType === 3) record.location.street.name = errStr;
+          if (errorType === 4) record.location.city = errStr;
+          if (errorType === 5) record.location.country = errStr;
+        };
+        const targets = [
+          record?.name.first,
+          record?.name.last,
+          record?.location.street.name,
+          record?.location.city,
+          record?.location.country,
+        ];
+
+        if (params.error === 0.5) {
+          if (index % 2 === 0) {
+            const errType = {
+              func: Math.floor(Math.random() * 3),
+              target: Math.floor(Math.random() * 5),
+            };
+            finalFunc(
+              functions[errType.func],
+              targets[errType.target],
+              errType.target
+            );
+          }
+          errorData.push(record);
         } else {
-          return response.data.results;
+          for (let i = 0; i < params.error; i++) {
+            const errType = {
+              func: Math.floor(Math.random() * 3),
+              target: Math.floor(Math.random() * 5),
+            };
+
+            finalFunc(
+              functions[errType.func],
+              targets[errType.target],
+              errType.target
+            );
+          }
+          errorData.push(record);
         }
       });
-
-    setData([...data, ...extra]);
-  };
-
-  const handleError = () => {
-    if (params.error > 0) {
-      const equalProbablity = Math.floor(params.error / 3);
-      const alphabet = "abcdefghijklmnopqrstuvwxyz";
-      const randomCharacter =
-        alphabet[Math.floor(Math.random() * alphabet.length)];
-      const errorData = [];
-      data.forEach((record, index) => {
-        if(index % 2 === 0){
-            for (let i = 0; i < equalProbablity; i++) {
-                record.name?.first = 
-            }
-        }else{
-            for (let i = 0; i < equalProbablity; i++) {
-
-            }
-        }
-       
-      });
+      return errorData;
     }
+   
   };
-
-  React.useEffect(() => {
-    if (data.length > 0 && scroll) {
-      getExtraData();
-    }
-  }, [scroll]);
 
   const generateData = async () => {
     const data = await axios
@@ -85,9 +120,43 @@ function App() {
         }
       });
 
-    setData(data);
+    const result = await handleSeedError(data);
+    setData(result);
     setScroll(false);
   };
+
+  const getExtraData = async () => {
+    const extra = await axios
+      .get(
+        `${url}?results=10&nat=${params.region}&seed=${
+          params.seed
+        }&page=${Math.floor(Math.random() * 10000)}`
+      )
+      .then((response) => {
+        if (response.data.message) {
+          console.log(response.data.message);
+        } else {
+          return response.data.results;
+        }
+      });
+
+      const result = await handleSeedError(extra)
+    setData([...data, ...result]);
+  };
+
+  React.useEffect(() => {
+    if (data?.length > 0 && scroll) {
+      getExtraData();
+    }
+  }, [scroll]);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      setScroll(entry.isIntersecting);
+    });
+    observer.observe(scrollContainer.current);
+  }, []);
 
   return (
     <Box>
@@ -113,6 +182,7 @@ function App() {
             select
             label="Region"
             sx={{ width: "100px" }}
+            value={params.region}
             onChange={(e) => setParams({ ...params, region: e.target.value })}
           >
             <MenuItem value="tr">Turkey</MenuItem>
@@ -132,7 +202,7 @@ function App() {
               label="Error"
               valueLabelDisplay="auto"
               value={params?.error}
-              step={1}
+              step={0.5}
               marks
               min={0}
               max={1000}
@@ -162,7 +232,13 @@ function App() {
             sx={{ width: "150px" }}
             onChange={(e) => setParams({ ...params, seed: e.target.value })}
           />
-          <Button variant="contained" onClick={() => generateData()}>
+          <Button
+            variant="contained"
+            onClick={() => {
+              generateData();
+              // handleSeedError();
+            }}
+          >
             Random
           </Button>
         </Box>
@@ -182,11 +258,9 @@ function App() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.length > 0
+            {data?.length > 0
               ? data.map((row, index) => (
-                  <TableRow
-                    key={index}
-                  >
+                  <TableRow key={index}>
                     <TableCell component="th" scope="row">
                       {index + 1}
                     </TableCell>
