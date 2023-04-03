@@ -24,7 +24,6 @@ function App() {
     const [page, setPage] = React.useState(1);
 
     const scrollContainer = React.useRef();
-  
 
     const handleAdd = (str, record, errorType) => {
         const alphabet = "abcdefghijklmnopqrstuvwxyz";
@@ -40,11 +39,11 @@ function App() {
     };
 
     const handleDelete = (str, record, errorType) => {
-        let newStr = ''
-        if(str.length % 2 ===0){
-          newStr = str.replace(str[0], "");
+        let newStr = "";
+        if (str.length % 2 === 0) {
+            newStr = str.replace(str[0], "");
         } else {
-          newStr = str.replace(str[str.length -1], "");
+            newStr = str.replace(str[str.length - 1], "");
         }
 
         if (errorType === 0) record.name.first = newStr;
@@ -77,8 +76,6 @@ function App() {
         if (errorType === 3) record.location.city = newStr;
     };
 
-
-
     const handleSeedError = (arr) => {
         if (Number(params.error) === 0) {
             return arr;
@@ -86,102 +83,66 @@ function App() {
         let errorData = [];
         const remainder = Number(params.error) % 4;
         const iterCount = (Number(params.error) - remainder) / 4;
-        data.forEach((record) => {
-            const targets = [
-                record?.name.first,
-                record?.name.last,
-                record?.location.street.name,
-                record?.location.city,
-            ];
 
-            for (let i = 0; i <= iterCount; i++) {
-                if (i === iterCount) {
-                    for (let j = 0; j < remainder; j++) {
-                        if (j === 1) {
-                            handleSwap(targets[j], record, j);
-                        } else if (j === 2) {
-                            handleDelete(targets[j], record, j);
-                        } else {
-                            handleAdd(targets[j], record, j);
-                            handleAdd(targets[j], record, j);
-                        }
+        if (Number(params.error) === 0.5) {
+            data.forEach((record, index) => {
+                const targets = [
+                    record?.name.first,
+                    record?.name.last,
+                    record?.location.street.name,
+                    record?.location.city,
+                ];
+                if (index % 2 !== 0) {
+                    for (let j = 0; j < 1; j++) {
+                      handleAdd(targets[j], record, j);
                     }
+                    errorData.push(record);
                 } else {
-                    for (let j = 0; j < targets.length; j++) {
-                        if (j === 1) {
-                            handleSwap(targets[j], record, j);
-                            handleAdd(targets[j], record, j);
-                        } else if (j === 2) {
-                        
-                            handleDelete(targets[j], record, j);
-                           
-                            
-                        } else {
-                            handleAdd(targets[j], record, j);
-                            handleDelete(targets[j], record, j);
+                  errorData.push(record)
+                }
+            });
+        } else {
+            data.forEach((record) => {
+                const targets = [
+                    record?.name.first,
+                    record?.name.last,
+                    record?.location.street.name,
+                    record?.location.city,
+                ];
+
+                for (let i = 0; i <= iterCount; i++) {
+                    if (i === iterCount) {
+                        for (let j = 0; j < remainder; j++) {
+                            if (j === 1) {
+                                handleSwap(targets[j], record, j);
+                            } else if (j === 2) {
+                                handleDelete(targets[j], record, j);
+                            } else {
+                                handleAdd(targets[j], record, j);
+                                handleAdd(targets[j], record, j);
+                            }
+                        }
+                    } else {
+                        for (let j = 0; j < targets.length; j++) {
+                            if (j === 1) {
+                                handleSwap(targets[j], record, j);
+                                handleAdd(targets[j], record, j);
+                            } else if (j === 2) {
+                                handleDelete(targets[j], record, j);
+                            } else {
+                                handleAdd(targets[j], record, j);
+                                handleDelete(targets[j], record, j);
+                            }
                         }
                     }
                 }
-            }
 
-            errorData.push(record);
-        });
+                errorData.push(record);
+            });
+        }
+
         return errorData;
     };
-
-    
-    //         return arr;
-    //     }
-
-    //     let errorData = [];
-    //     if (Number(params.error) > 0) {
-    //         arr.forEach((record, index) => {
-    //             const finalFunc = (callback, str, errorType) => {
-    //                 const errStr = callback(str);
-    //                 if (errorType === 1) record.name.first = errStr;
-    //                 if (errorType === 2) record.name.last = errStr;
-    //                 if (errorType === 3) record.location.street.name = errStr;
-    //                 if (errorType === 4) record.location.city = errStr;
-    //             };
-    //             const targets = [
-    //                 record?.name.first,
-    //                 record?.name.last,
-    //                 record?.location.street.name,
-    //                 record?.location.city,
-    //             ];
-
-    //             if (params.error === 0.5) {
-    //                 if (index % 2 === 0) {
-    //                     const errType = {
-    //                         func: Math.floor(Math.random() * 3),
-    //                         target: Math.floor(Math.random() * 5),
-    //                     };
-    //                     finalFunc(
-    //                         functions[errType.func],
-    //                         targets[errType.target],
-    //                         errType.target
-    //                     );
-    //                 }
-    //                 errorData.push(record);
-    //             } else {
-    //                 for (let i = 0; i < params.error; i++) {
-    //                     const errType = {
-    //                         func: Math.floor(Math.random() * 3),
-    //                         target: Math.floor(Math.random() * 5),
-    //                     };
-
-    //                     finalFunc(
-    //                         functions[errType.func],
-    //                         targets[errType.target],
-    //                         errType.target
-    //                     );
-    //                 }
-    //                 errorData.push(record);
-    //             }
-    //         });
-    //         return errorData;
-    //     }
-    // };
 
     const generateData = async () => {
         const data = await axios
